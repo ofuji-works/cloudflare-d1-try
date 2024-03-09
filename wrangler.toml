@@ -1,0 +1,6 @@
+name = "cloudflare-d1-try"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-03-09"
+
+[build]
+command = "cargo install worker-build && rustup target add wasm32-unknown-unknown && worker-build --release"
