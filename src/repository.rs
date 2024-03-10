@@ -35,12 +35,26 @@ impl QueryResult {
     }
 }
 
+pub struct CreateParams {
+    pub name: String,
+}
+impl CreateParams {
+    pub fn new(name: String) -> Self {
+        Self { name }
+    }
+}
+
+pub struct UpdateParams {
+    pub id: i32,
+    pub name: String,
+}
+
 #[async_trait(?Send)]
 pub trait Repository {
     async fn get<T>(&self, options: Options) -> Result<Vec<Vec<T>>>
     where
         T: for<'de> serde::Deserialize<'de>;
-    async fn create(&self) -> Result<()>;
-    async fn update(&self) -> Result<()>;
-    async fn delete(&self) -> Result<()>;
+    async fn create(&self, params: CreateParams) -> Result<QueryResult>;
+    async fn update(&self, params: UpdateParams) -> Result<QueryResult>;
+    async fn delete(&self, id: i32) -> Result<QueryResult>;
 }
