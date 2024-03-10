@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use serde::Deserialize;
 use worker::D1Result;
 
 const DEFAULT_LIMIT: i32 = 100;
@@ -35,25 +36,41 @@ impl QueryResult {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TestData {
+    id: i32,
+    post_id: i32,
+    short_text: String,
+    created_at: i32,
+    updated_at: i32,
+    sample_id: i32,
+}
+
 pub struct CreateParams {
-    pub name: String,
+    pub post_id: i32,
+    pub short_text: String,
+    pub sample_id: i32,
 }
 impl CreateParams {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn new(post_id: i32, short_text: String, sample_id: i32) -> Self {
+        Self {
+            post_id,
+            short_text,
+            sample_id,
+        }
     }
 }
 
 pub struct UpdateParams {
     pub id: i32,
-    pub name: String,
+    pub post_id: Option<i32>,
+    pub short_text: Option<String>,
+    pub sample_id: Option<i32>,
 }
 
 #[async_trait(?Send)]
 pub trait Repository {
-    async fn get<T>(&self, options: Options) -> Result<Vec<Vec<T>>>
-    where
-        T: for<'de> serde::Deserialize<'de>;
+    async fn get(&self, options: Options) -> Result<Vec<Vec<TestData>>>;
     async fn create(&self, params: CreateParams) -> Result<QueryResult>;
     async fn update(&self, params: UpdateParams) -> Result<QueryResult>;
     async fn delete(&self, id: i32) -> Result<QueryResult>;

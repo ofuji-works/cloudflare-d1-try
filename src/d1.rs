@@ -1,6 +1,5 @@
 use anyhow::{anyhow, bail, Result};
 use async_trait::async_trait;
-use serde::Deserialize;
 use serde_wasm_bindgen::to_value;
 use wasm_bindgen::JsValue;
 use worker::*;
@@ -19,33 +18,44 @@ impl From<D1Database> for D1 {
 
 impl CreateParams {
     fn js_values(&self) -> Result<Vec<JsValue>> {
-        let name = to_value(&self.name).or(Err(anyhow!("failed set name parameter")))?;
+        let post_id = to_value(&self.post_id).or(Err(anyhow!("failed set post_id parameter")))?;
+        let short_text =
+            to_value(&self.short_text).or(Err(anyhow!("failed set short_text parameter")))?;
+        let sample_id =
+            to_value(&self.sample_id).or(Err(anyhow!("failed set sample_id parameter")))?;
 
-        Ok(vec![name])
+        Ok(vec![post_id, short_text, sample_id])
     }
 }
 
 impl UpdateParams {
     fn js_values(&self) -> Result<Vec<JsValue>> {
-        let id = to_value(&self.id).or(Err(anyhow!("failed set id parameter")))?;
-        let name = to_value(&self.name).or(Err(anyhow!("failed set name parameter")))?;
+        let mut values = vec![];
+        if let Some(post_id) = self.post_id {
+            values.push(to_value(&post_id).or(Err(anyhow!("failed set post_id parameter")))?);
+        }
+        if let Some(short_text) = &self.short_text {
+            values.push(to_value(&short_text).or(Err(anyhow!("failed set short_text parameter")))?);
+        }
+        if let Some(sample_id) = self.sample_id {
+            values.push(to_value(&sample_id).or(Err(anyhow!("failed set sample_id parameter")))?);
+        }
 
-        Ok(vec![id, name])
+        values.push(to_value(&self.id).or(Err(anyhow!("failed set id parameter")))?);
+
+        Ok(values)
     }
 }
 
 #[async_trait(?Send)]
 impl Repository for D1 {
-    async fn get<T>(&self, options: Options) -> Result<Vec<Vec<T>>>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
+    async fn get(&self, options: Options) -> Result<Vec<Vec<TestData>>> {
         let statement = self.db.prepare("SELECT * FROM d1 LIMIT ?");
         let limit = to_value(&options.limit()).or(Err(anyhow!("failed set limit parameter")))?;
         let query = statement
             .bind(&[limit])
             .or(Err(anyhow!("failed generate query")))?;
-        let result = query.raw().await;
+        let result = query.raw::<TestData>().await;
 
         return match result {
             Ok(result) => Ok(result),
@@ -53,7 +63,9 @@ impl Repository for D1 {
         };
     }
     async fn create(&self, params: CreateParams) -> Result<QueryResult> {
-        let statement = self.db.prepare("INSERT INTO d1 (name) VALUES (?)");
+        let statement = self
+            .db
+            .prepare("INSERT INTO d1 (post_id, short_text, sample_id) VALUES (?, ?, ?);");
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
@@ -62,7 +74,23 @@ impl Repository for D1 {
         Ok(QueryResult::from(result))
     }
     async fn update(&self, params: UpdateParams) -> Result<QueryResult> {
-        let statement = self.db.prepare("UPDATE d1 SET name = ? WHERE id = ?");
+        let mut set_values_text = String::new();
+
+        if params.post_id.is_some() {
+            set_values_text.push_str("post_id = ?, ");
+        }
+
+        if params.short_text.is_some() {
+            set_values_text.push_str("short_text = ?, ");
+        }
+
+        if params.sample_id.is_some() {
+            set_values_text.push_str("sample_id = ?, ");
+        }
+
+        let statement = self
+            .db
+            .prepare(format!("UPDATE d1 SET {} WHERE id = ?", set_values_text).as_str());
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
