@@ -1,3 +1,6 @@
+pub mod d1;
+pub mod repository;
+
 use serde::{Deserialize, Serialize};
 use worker::*;
 
