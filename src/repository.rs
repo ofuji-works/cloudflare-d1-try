@@ -8,8 +8,8 @@ pub struct Options {
     pub limit: Option<i32>,
 }
 impl Options {
-    pub fn new() -> Self {
-        Self { limit: None }
+    pub fn new(limit: i32) -> Self {
+        Self { limit: Some(limit) }
     }
 
     pub fn limit(&self) -> i32 {
