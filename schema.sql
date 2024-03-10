@@ -1,4 +1,5 @@
--- DDL
+DROP TABLE IF EXISTS test_table;
+
 CREATE TABLE test_table
 (
     id         INTEGER PRIMARY KEY AUTOINCREMENT ,

@@ -6,7 +6,7 @@ use repository::{Options, Repository};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
-const DB_NAME: &str = "test_db";
+const BINDING_NAME: &str = "DB";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct GenericResponse {
@@ -26,15 +26,22 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 }
 
 pub async fn handle_get(_: Request, ctx: RouteContext<()>) -> worker::Result<Response> {
-    let d1 = D1::from(ctx.env.d1(DB_NAME)?);
+    let d1 = D1::from(ctx.env.d1(BINDING_NAME)?);
     let options = Options::new(100);
-    let result = d1.get(options).await;
 
-    println!("{:?}", result);
+    let r = match d1.get(options).await {
+        Ok(result) => serde_wasm_bindgen::to_value(&result).unwrap(),
+        Err(e) => {
+            return Response::from_json(&GenericResponse {
+                status: 500,
+                message: e.to_string(),
+            });
+        }
+    };
 
     Response::from_json(&GenericResponse {
         status: 200,
-        message: "You reached a GET route!".to_string(),
+        message: format!("You reached a GET route! {:?}", r),
     })
 }
 

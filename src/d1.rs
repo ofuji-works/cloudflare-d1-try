@@ -49,15 +49,19 @@ impl UpdateParams {
 
 #[async_trait(?Send)]
 impl Repository for D1 {
-    async fn get(&self, options: Options) -> Result<Vec<Vec<TestData>>> {
-        let statement = self.db.prepare("SELECT * FROM d1 LIMIT ?");
+    async fn get(&self, options: Options) -> Result<Vec<TestData>> {
+        let statement = self.db.prepare("SELECT * FROM test_table LIMIT ?");
         let limit = to_value(&options.limit()).or(Err(anyhow!("failed set limit parameter")))?;
         let query = statement
             .bind(&[limit])
             .or(Err(anyhow!("failed generate query")))?;
-        let result = query.raw::<TestData>().await;
 
-        return match result {
+        let result = match query.all().await {
+            Ok(result) => result,
+            Err(e) => bail!("Error: {}", e),
+        };
+
+        return match result.results::<TestData>() {
             Ok(result) => Ok(result),
             Err(e) => bail!("Error: {}", e),
         };
@@ -65,7 +69,7 @@ impl Repository for D1 {
     async fn create(&self, params: CreateParams) -> Result<QueryResult> {
         let statement = self
             .db
-            .prepare("INSERT INTO d1 (post_id, short_text, sample_id) VALUES (?, ?, ?);");
+            .prepare("INSERT INTO test_table (post_id, short_text, sample_id) VALUES (?, ?, ?);");
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
@@ -90,7 +94,7 @@ impl Repository for D1 {
 
         let statement = self
             .db
-            .prepare(format!("UPDATE d1 SET {} WHERE id = ?", set_values_text).as_str());
+            .prepare(format!("UPDATE test_table SET {} WHERE id = ?", set_values_text).as_str());
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
@@ -99,7 +103,7 @@ impl Repository for D1 {
         Ok(QueryResult::from(result))
     }
     async fn delete(&self, id: i32) -> Result<QueryResult> {
-        let statement = self.db.prepare("DELETE FROM d1 WHERE id = ?");
+        let statement = self.db.prepare("DELETE FROM test_table WHERE id = ?");
         let query = statement
             .bind(&[to_value(&id).or(Err(anyhow!("failed set id parameter")))?])
             .or(Err(anyhow!("failed generate query")))?;
