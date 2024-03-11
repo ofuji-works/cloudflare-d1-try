@@ -4,3 +4,8 @@ compatibility_date = "2024-03-09"
 
 [build]
 command = "cargo install worker-build && rustup target add wasm32-unknown-unknown && worker-build --release"
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "test-db"
+database_id = "12a2bd46-a441-4240-b527-369d683b70e5"

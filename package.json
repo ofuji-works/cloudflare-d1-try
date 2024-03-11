@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "create:db": "wrangler d1 create test-db",
-    "dev": "wrangler d1 execute test-db --file=./schema.sql && wrangler dev --local",
+    "dev": "wrangler d1 execute test-db --file=./schema.sql && wrangler dev",
     "login": "wrangler login",
     "build": "wrangler build",
     "publish": "wrangler publish"

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use worker::D1Result;
 
 const DEFAULT_LIMIT: i32 = 100;
 
@@ -22,16 +21,17 @@ impl Options {
     }
 }
 
+#[derive(Serialize)]
 pub struct QueryResult {
-    result: D1Result,
+    result: String,
 }
-impl From<D1Result> for QueryResult {
-    fn from(result: D1Result) -> Self {
+impl From<String> for QueryResult {
+    fn from(result: String) -> Self {
         Self { result }
     }
 }
 impl QueryResult {
-    pub fn result(&self) -> &D1Result {
+    pub fn result(&self) -> &str {
         &self.result
     }
 }
@@ -41,8 +41,8 @@ pub struct TestData {
     id: i32,
     post_id: i32,
     short_text: String,
-    created_at: i32,
-    updated_at: i32,
+    created_at: String,
+    updated_at: String,
     sample_id: i32,
 }
 
@@ -66,6 +66,21 @@ pub struct UpdateParams {
     pub post_id: Option<i32>,
     pub short_text: Option<String>,
     pub sample_id: Option<i32>,
+}
+impl UpdateParams {
+    pub fn new(
+        id: i32,
+        post_id: Option<i32>,
+        short_text: Option<String>,
+        sample_id: Option<i32>,
+    ) -> Self {
+        Self {
+            id,
+            post_id,
+            short_text,
+            sample_id,
+        }
+    }
 }
 
 #[async_trait(?Send)]

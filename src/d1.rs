@@ -50,7 +50,7 @@ impl UpdateParams {
 #[async_trait(?Send)]
 impl Repository for D1 {
     async fn get(&self, options: Options) -> Result<Vec<TestData>> {
-        let statement = self.db.prepare("SELECT * FROM test_table LIMIT ?");
+        let statement = self.db.prepare("SELECT * FROM test_table LIMIT ?;");
         let limit = to_value(&options.limit()).or(Err(anyhow!("failed set limit parameter")))?;
         let query = statement
             .bind(&[limit])
@@ -73,42 +73,42 @@ impl Repository for D1 {
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
-        let result = query.run().await.or(Err(anyhow!("failed run query")))?;
+        let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
 
-        Ok(QueryResult::from(result))
+        Ok(QueryResult::from(String::from("success")))
     }
     async fn update(&self, params: UpdateParams) -> Result<QueryResult> {
         let mut set_values_text = String::new();
 
         if params.post_id.is_some() {
-            set_values_text.push_str("post_id = ?, ");
+            set_values_text.push_str("post_id = ?");
         }
 
         if params.short_text.is_some() {
-            set_values_text.push_str("short_text = ?, ");
+            set_values_text.push_str(", short_text = ?");
         }
 
         if params.sample_id.is_some() {
-            set_values_text.push_str("sample_id = ?, ");
+            set_values_text.push_str(", sample_id = ?");
         }
 
         let statement = self
             .db
-            .prepare(format!("UPDATE test_table SET {} WHERE id = ?", set_values_text).as_str());
+            .prepare(format!("UPDATE test_table SET {} WHERE id = ?;", set_values_text).as_str());
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
-        let result = query.run().await.or(Err(anyhow!("failed run query")))?;
+        let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
 
-        Ok(QueryResult::from(result))
+        Ok(QueryResult::from(String::from("success")))
     }
     async fn delete(&self, id: i32) -> Result<QueryResult> {
         let statement = self.db.prepare("DELETE FROM test_table WHERE id = ?");
         let query = statement
             .bind(&[to_value(&id).or(Err(anyhow!("failed set id parameter")))?])
             .or(Err(anyhow!("failed generate query")))?;
-        let result = query.run().await.or(Err(anyhow!("failed run query")))?;
+        let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
 
-        Ok(QueryResult::from(result))
+        Ok(QueryResult::from(String::from("success")))
     }
 }
