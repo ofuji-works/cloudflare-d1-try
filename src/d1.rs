@@ -113,17 +113,33 @@ impl Repository for D1 {
     }
 }
 
+pub struct BulkInsertParams {
+    pub row_count: i32,
+}
+impl BulkInsertParams {
+    pub fn new(row_count: i32) -> Self {
+        Self { row_count }
+    }
+
+    fn js_values(&self) -> Result<Vec<JsValue>> {
+        let row_count =
+            to_value(&self.row_count).or(Err(anyhow!("failed set row_count parameter")))?;
+
+        Ok(vec![
+            row_count.clone(),
+            row_count.clone(),
+            row_count.clone(),
+        ])
+    }
+}
+
 impl D1 {
-    pub async fn bulk_insert(&self) -> Result<QueryResult> {
-        let statement = self.db.prepare("WITH RECURSIVE temp(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM temp WHERE x< ?) INSERT INTO test_table (post_id, short_text, sample_id) SELECT CAST(RANDOM() * ? AS BIGINT), SUBSTR (RANDOMBLOB(16), 1, 32), CAST(RANDOM() * ? AS BIGINT) FROM temp;");
-        let _query = statement
-            .bind(&[
-                to_value(&"10").or(Err(anyhow!("failed set limit parameter")))?,
-                to_value(&"10").or(Err(anyhow!("failed set limit parameter")))?,
-                to_value(&"10").or(Err(anyhow!("failed set limit parameter")))?,
-            ])
+    pub async fn bulk_insert(&self, params: BulkInsertParams) -> Result<QueryResult> {
+        let statement = self.db.prepare("WITH RECURSIVE temp(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM temp WHERE x<?) INSERT INTO test_table (post_id, short_text, sample_id) SELECT CAST(RANDOM() * ? AS BIGINT), SUBSTR(RANDOMBLOB(16), 1, 32), CAST(RANDOM() * ? AS BIGINT) FROM temp;");
+        let query = statement
+            .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
-        //let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
+        let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
 
         Ok(QueryResult::from(String::from("success")))
     }

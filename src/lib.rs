@@ -2,7 +2,7 @@ pub mod d1;
 pub mod repository;
 
 use anyhow::{bail, Error as AnyhowError, Result as AnyhowResult};
-use d1::D1;
+use d1::{BulkInsertParams, D1};
 use garde::Validate;
 use repository::{CreateParams, Options, Repository, UpdateParams};
 use serde::{Deserialize, Serialize};
@@ -69,6 +69,23 @@ impl UpdateParams {
             short_text: update_request.short_text,
             sample_id: update_request.sample_id,
         })
+    }
+}
+
+#[derive(Deserialize, Debug, Validate)]
+pub struct BulkInsertRequest {
+    #[garde(required)]
+    pub row_count: Option<i32>,
+}
+impl TryFrom<BulkInsertRequest> for BulkInsertParams {
+    type Error = AnyhowError;
+    fn try_from(req: BulkInsertRequest) -> AnyhowResult<Self> {
+        let row_count = match req.row_count {
+            Some(count) => count,
+            None => bail!("row_count is required"),
+        };
+
+        Ok(BulkInsertParams::new(row_count))
     }
 }
 
@@ -231,9 +248,43 @@ pub async fn handle_delete(_: Request, ctx: RouteContext<()>) -> worker::Result<
     })
 }
 
-pub async fn handle_bulk_insert(_: Request, ctx: RouteContext<()>) -> worker::Result<Response> {
+pub async fn handle_bulk_insert(
+    mut request: Request,
+    ctx: RouteContext<()>,
+) -> worker::Result<Response> {
+    let data = from_str::<BulkInsertRequest>(request.text().await?.as_str());
+    let bulk_insert_request = match data {
+        Ok(req) => req,
+        Err(e) => {
+            return Response::from_json(&GenericResponse {
+                status: 400,
+                message: e.to_string(),
+            });
+        }
+    };
+
+    match bulk_insert_request.validate(&()) {
+        Ok(_) => {}
+        Err(e) => {
+            return Response::from_json(&GenericResponse {
+                status: 400,
+                message: e.to_string(),
+            });
+        }
+    }
+
+    let bulk_insert_params = match BulkInsertParams::try_from(bulk_insert_request) {
+        Ok(params) => params,
+        Err(e) => {
+            return Response::from_json(&GenericResponse {
+                status: 400,
+                message: e.to_string(),
+            });
+        }
+    };
+
     let d1 = D1::from(ctx.env.d1(BINDING_NAME)?);
-    let result = match d1.bulk_insert().await {
+    let result = match d1.bulk_insert(bulk_insert_params).await {
         Ok(result) => serde_wasm_bindgen::to_value(&result).unwrap(),
         Err(e) => {
             return Response::from_json(&GenericResponse {
