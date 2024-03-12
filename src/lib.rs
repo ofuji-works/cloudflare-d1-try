@@ -83,8 +83,10 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     Router::new()
         .get_async("/get", handle_get)
         .post_async("/post", handle_post)
+        .post_async("/bulk_insert", handle_bulk_insert)
         .put_async("/update/:id", handle_put)
         .delete_async("/delete/:id", handle_delete)
+        .delete_async("/delete", handle_all_delete)
         .run(req, env)
         .await
 }
@@ -214,6 +216,42 @@ pub async fn handle_delete(_: Request, ctx: RouteContext<()>) -> worker::Result<
 
     let d1 = D1::from(ctx.env.d1(BINDING_NAME)?);
     let result = match d1.delete(id).await {
+        Ok(result) => serde_wasm_bindgen::to_value(&result).unwrap(),
+        Err(e) => {
+            return Response::from_json(&GenericResponse {
+                status: 500,
+                message: e.to_string(),
+            });
+        }
+    };
+
+    Response::from_json(&GenericResponse {
+        status: 200,
+        message: format!("You reached a DELETE route! {:?}", result),
+    })
+}
+
+pub async fn handle_bulk_insert(_: Request, ctx: RouteContext<()>) -> worker::Result<Response> {
+    let d1 = D1::from(ctx.env.d1(BINDING_NAME)?);
+    let result = match d1.bulk_insert().await {
+        Ok(result) => serde_wasm_bindgen::to_value(&result).unwrap(),
+        Err(e) => {
+            return Response::from_json(&GenericResponse {
+                status: 500,
+                message: e.to_string(),
+            });
+        }
+    };
+
+    Response::from_json(&GenericResponse {
+        status: 200,
+        message: format!("You reached a BULK INSERT route! {:?}", result),
+    })
+}
+
+pub async fn handle_all_delete(_: Request, ctx: RouteContext<()>) -> worker::Result<Response> {
+    let d1 = D1::from(ctx.env.d1(BINDING_NAME)?);
+    let result = match d1.all_delete().await {
         Ok(result) => serde_wasm_bindgen::to_value(&result).unwrap(),
         Err(e) => {
             return Response::from_json(&GenericResponse {

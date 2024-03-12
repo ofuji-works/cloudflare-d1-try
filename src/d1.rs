@@ -112,3 +112,26 @@ impl Repository for D1 {
         Ok(QueryResult::from(String::from("success")))
     }
 }
+
+impl D1 {
+    pub async fn bulk_insert(&self) -> Result<QueryResult> {
+        let statement = self.db.prepare("WITH RECURSIVE temp(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM temp WHERE x< ?) INSERT INTO test_table (post_id, short_text, sample_id) SELECT CAST(RANDOM() * ? AS BIGINT), SUBSTR (RANDOMBLOB(16), 1, 32), CAST(RANDOM() * ? AS BIGINT) FROM temp;");
+        let _query = statement
+            .bind(&[
+                to_value(&"10").or(Err(anyhow!("failed set limit parameter")))?,
+                to_value(&"10").or(Err(anyhow!("failed set limit parameter")))?,
+                to_value(&"10").or(Err(anyhow!("failed set limit parameter")))?,
+            ])
+            .or(Err(anyhow!("failed generate query")))?;
+        //let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
+
+        Ok(QueryResult::from(String::from("success")))
+    }
+
+    pub async fn all_delete(&self) -> Result<QueryResult> {
+        let statement = self.db.prepare("DELETE FROM test_table");
+        let _result = statement.run().await.or(Err(anyhow!("failed run query")))?;
+
+        Ok(QueryResult::from(String::from("success")))
+    }
+}
