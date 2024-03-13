@@ -135,7 +135,7 @@ impl BulkInsertParams {
 
 impl D1 {
     pub async fn bulk_insert(&self, params: BulkInsertParams) -> Result<QueryResult> {
-        let statement = self.db.prepare("WITH RECURSIVE temp(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM temp WHERE x<?) INSERT INTO test_table (post_id, short_text, sample_id) SELECT CAST(RANDOM() * ? AS INT), 'sample_text', CAST(RANDOM() * ? AS INT) FROM temp;");
+        let statement = self.db.prepare("WITH RECURSIVE temp(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM temp WHERE x<?) INSERT INTO test_table (post_id, short_text, sample_id) SELECT ABS(RANDOM()) % 99999999, 'sample_text', ABS(RANDOM()) % 99999999 FROM temp;");
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
