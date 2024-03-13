@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-const DEFAULT_LIMIT: i32 = 100;
+const DEFAULT_LIMIT: i32 = 1000000;
 
 pub struct Options {
     pub limit: Option<i32>,

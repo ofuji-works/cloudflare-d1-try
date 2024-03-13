@@ -50,7 +50,9 @@ impl UpdateParams {
 #[async_trait(?Send)]
 impl Repository for D1 {
     async fn get(&self, options: Options) -> Result<Vec<TestData>> {
-        let statement = self.db.prepare("SELECT * FROM test_table LIMIT ?;");
+        let statement = self
+            .db
+            .prepare("SELECT * FROM test_table LIMIT ? OFFSET 100;");
         let limit = to_value(&options.limit()).or(Err(anyhow!("failed set limit parameter")))?;
         let query = statement
             .bind(&[limit])
@@ -125,11 +127,7 @@ impl BulkInsertParams {
         let row_count =
             to_value(&self.row_count).or(Err(anyhow!("failed set row_count parameter")))?;
 
-        Ok(vec![
-            row_count.clone(),
-            row_count.clone(),
-            row_count.clone(),
-        ])
+        Ok(vec![row_count.clone()])
     }
 }
 
@@ -139,7 +137,11 @@ impl D1 {
         let query = statement
             .bind(&params.js_values()?)
             .or(Err(anyhow!("failed generate query")))?;
-        let _result = query.run().await.or(Err(anyhow!("failed run query")))?;
+
+        match query.run().await {
+            Ok(_) => {}
+            Err(e) => bail!("Error: {}", e),
+        };
 
         Ok(QueryResult::from(String::from("success")))
     }
